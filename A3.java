@@ -1,32 +1,19 @@
 import java.io.*;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.Map;
-import java.util.Objects;
-import java.util.Set;
-import java.util.regex.Matcher; 
-import java.util.regex.Pattern; 
-import java.util.Scanner;
-
+import java.util.*;
 
 public class A3 {
-	public static int totalEmails;
-    public static Map<String, Set<String>> mailGraph = new HashMap<>(); 
+    public static int totalEmails;
+    public static Map<String, Set<String>> mailGraph = new HashMap<>();
 
-    /*
-     * List files for folder function basic idea from online, parse through the files in a given directory, 
-     *      in each of those files, locate "from" and "to" (with "cc") emails, calling addEdge to create adjacencyMap. 
-     *      Additional info included in README.md
-     * @param File
-     */
-	public static void listFilesForFolder(final File folder) {
+    // Function to list files in a folder and process each file to extract email information
+    public static void listFilesForFolder(final File folder) {
         String line;
         for (final File fileEntry : Objects.requireNonNull(folder.listFiles())) {
             if (fileEntry.isDirectory()) {
                 listFilesForFolder(fileEntry);
-            }
-            else {
+            } else {
                 try {
+                    // Read each line in the file and extract "From", "To", and "Cc" email addresses
                     BufferedReader bufferedreader = new BufferedReader(new FileReader(fileEntry.getPath()));
                     String fromAdd = null;
                     String toAdd = null;
@@ -34,17 +21,7 @@ public class A3 {
                         if (line.startsWith("From: ")) {
                             fromAdd = extractEmail(line);
                         }
-                        // not sure 
-                        if (line.startsWith("To: ")) {
-                            String[] arr = line.split(" ");
-                            for (int i = 1; i < arr.length; i++) {
-                                toAdd = extractEmail(arr[i]);
-                                if (toAdd != null && fromAdd != null) {
-                                    addEdge(mailGraph, fromAdd, toAdd);
-                                }
-                            }
-                        }
-                        if (line.startsWith("Cc: ")) {
+                        if (line.startsWith("To: ") || line.startsWith("Cc: ")) {
                             String[] arr = line.split(" ");
                             for (int i = 1; i < arr.length; i++) {
                                 toAdd = extractEmail(arr[i]);
@@ -54,78 +31,50 @@ public class A3 {
                             }
                         }
                     }
-
                 } catch (IOException ex) {
                     ex.printStackTrace();
                 }
             }
         }
     }
-	
-	
-    /*
-     * Extract email function provided by David
-     * @param String at line 
-     * @return complete email string
-     */
-	public static String extractEmail(String input) {
+
+    // Function to extract email from a given line
+    public static String extractEmail(String input) {
         Matcher matcher = Pattern.compile("([a-zA-Z0-9.-]+@[a-zA-Z0-9.-]+\\.[a-zA-Z0-9._-]+)").matcher(input);
         if (matcher.find()) {
             return matcher.group(1);
         }
         return null;
-	}
+    }
 
-    /*
-     * Add edge structure taken from slides
-     * @param adjacencyMap
-     * @param each email
-     * @param email's neighbor
-     */
+    // Function to add an edge between two nodes in the graph
     public static void addEdge(Map<String, Set<String>> adjacencyMap, String node1, String node2) {
-        // Check if the nodes already exist in the map
         if (!adjacencyMap.containsKey(node1)) {
             adjacencyMap.put(node1, new HashSet<>());
         }
         if (!adjacencyMap.containsKey(node2)) {
             adjacencyMap.put(node2, new HashSet<>());
         }
-
-        // Add the edges (undirected graph)
         adjacencyMap.get(node1).add(node2);
-        adjacencyMap.get(node2).add(node1); 
+        adjacencyMap.get(node2).add(node1);
     }
 
-
-    /*
-     * print and return Adjacency Map
-     * @param global adjacency Map variable
-     */
-    public static void printAdjMap(Map<String, Set<String>> adjacencyMap){
-    for (String node : adjacencyMap.keySet()) {
-        Set<String> neighbors = adjacencyMap.get(node);
-        System.out.print(node + ": ");
-        for (String neighbor : neighbors) {
-            System.out.print(neighbor + " ");
+    // Function to print the adjacency map
+    public static void printAdjMap(Map<String, Set<String>> adjacencyMap) {
+        for (String node : adjacencyMap.keySet()) {
+            Set<String> neighbors = adjacencyMap.get(node);
+            System.out.print(node + ": ");
+            for (String neighbor : neighbors) {
+                System.out.print(neighbor + " ");
+            }
+            System.out.println();
         }
-        System.out.println();
-    }
     }
 
-    /*
-     * DFS structure taken from youtube video listed in README
-     * parses through adjacencyMap 
-     * @param adjMap, 
-     * @param vertex (email user), 
-     * @param parent (initial user), 
-     * @param dfsnum (assigned when a vertex is created), 
-     * @param back (same as dfsnum, but subject to change when a new "pointer" is assigned), 
-     * @param connectors (set created as we parse through the map), 
-     * @param dfsCount
-     * 
-     */
-    private static void dfs(Map<String, Set<String>> adjacencyMap, String vertex, String parent, Map<String,
-            Integer> dfsnum, Map<String, Integer> back, Set<String> connectors, int dfsCount) {
+    // Depth-First Search (DFS) to find connectors in the graph
+    private static void dfs(Map<String, Set<String>> adjacencyMap, String vertex, String parent,
+                            Map<String, Integer> dfsnum, Map<String, Integer> back,
+                            Set<String> connectors, int dfsCount) {
         dfsnum.put(vertex, dfsCount);
         back.put(vertex, dfsCount);
         dfsCount++;
@@ -150,17 +99,13 @@ public class A3 {
                     back.put(vertex, Math.min(back.get(vertex), dfsnum.get(neighbor)));
                 }
             }
-        } //identify connector and add them to the connectors set
+        }
         if ((parent != null && isConnector) || (parent == null && childCount > 1)) {
             connectors.add(vertex);
         }
     }
 
-    /*
-     * Identify connections within the HashMap and wirte them to the new connectors file
-     * @param AdjacencyMap
-     * @param Connectors file
-     */
+    // Function to find connectors and write them to a file
     public static void findConnectors(Map<String, Set<String>> adjacencyMap, String outputFileName) {
         Set<String> connectors = new HashSet<>();
         Map<String, Integer> dfsnum = new HashMap<>();
@@ -171,7 +116,7 @@ public class A3 {
                 dfs(adjacencyMap, vertex, null, dfsnum, back, connectors, 1);
             }
         }
-        System.out.println("Total number of connectors in this file are "+ connectors.size());
+        System.out.println("Total number of connectors in this file are " + connectors.size());
         try {
             FileWriter writer = null;
             if (outputFileName != null) {
@@ -198,41 +143,32 @@ public class A3 {
         }
     }
 
-   /*
-    * Req 3: 
-    use the set thats corresponds to the key email address, team would be the sizze of that set
-    - use the connectors function to help identify if hteyre on the same team 
-    */
-
-    public static findEmailInfo(String userInput){
-        //for each erpson in the adjacency map, calculate how many people they have sent and recieved mail from 
-        // in order to do so, when from is calculated above
+    // Function to find email information for a given user
+    public static void findEmailInfo(String userInput) {
+        // Implementation required for REQ 3
     }
 
+    public static void main(String[] args) {
+        // Change to command line args when finished -- sends uncompressed maildir folder to the program
+        final String folderPath = "Users/myatp/OneDrive/Desktop/CS 245/Assignment03/enron_mail_20150507/maildir";
+        final File folder = new File(folderPath);
 
-	public static void main(String[] args) {
-		// change to command line args when finished -- sends uncompressed maildir folder to the program
-		final File folder = new File("/Users/jennaviev/Desktop/CS245/Assignment3/maildir");
-		listFilesForFolder(folder);
-		
+        if (!folder.exists() || !folder.isDirectory()) {
+            System.err.println("Error: The specified folder does not exist or is not a directory.");
+            return;
+        }
+
+        listFilesForFolder(folder);
+
         /* for testing */
-        //printAdjMap(mailGraph); 
-        
+        // printAdjMap(mailGraph);
+
         String connectors = new String("connectors.txt");
-        findConnectors(mailGraph,connectors);
-        
-        
-        
-        //for testing REQ 3
-        Scanner scanner= new Scanner(System.in); 
-        System.out.println("Email address of the individual (or EXIT to quit):"); 
+        findConnectors(mailGraph, connectors);
+
+        // For testing REQ 3
+        Scanner scanner = new Scanner(System.in);
+        System.out.println("Email address of the individual (or EXIT to quit):");
         String email = scanner.nextLine();
-        
-        
-	}
+    }
 }
-
-
-
-
-
